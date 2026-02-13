@@ -90,7 +90,7 @@ const VMTable = ({ vms, isLoading }: VMTableProps) => {
         header: 'Memory',
         cell: (info) => {
           const row = info.row.original;
-          const percentage = row.maxmem ? (row.mem / row.maxmem) * 100 : 0;
+          const percentage = row.maxmem ? ((row.mem ?? 0) / row.maxmem) * 100 : 0;
           return (
             <div className="flex items-center gap-2">
               <MemoryStick className="w-4 h-4 text-gray-400" />
@@ -106,7 +106,7 @@ const VMTable = ({ vms, isLoading }: VMTableProps) => {
         header: 'Disk',
         cell: (info) => {
           const row = info.row.original;
-          const percentage = row.maxdisk ? (row.disk / row.maxdisk) * 100 : 0;
+          const percentage = row.maxdisk ? ((row.disk ?? 0) / row.maxdisk) * 100 : 0;
           return (
             <div className="flex items-center gap-2">
               <HardDrive className="w-4 h-4 text-gray-400" />
@@ -227,3 +227,4 @@ const VMTable = ({ vms, isLoading }: VMTableProps) => {
 };
 
 export default VMTable;
+

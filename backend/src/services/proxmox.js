@@ -162,6 +162,7 @@ export async function getVMs(filters = {}) {
  * @returns {Promise<Object>} VM configuration
  */
 export async function getVMConfig(node, vmid, type = 'qemu') {
+  logger.info('GET /api/vms/config');
   try {
     const endpoint = type === 'lxc' 
       ? `/nodes/${node}/lxc/${vmid}/config`
