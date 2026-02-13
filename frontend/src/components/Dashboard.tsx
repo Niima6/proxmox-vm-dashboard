@@ -5,7 +5,9 @@ import { useTags } from '../hooks/useTags';
 import VMTable from './VMTable';
 import Filters from './Filters';
 import Stats from './Stats';
-import { Server, RefreshCw } from 'lucide-react';
+import { Server, RefreshCw, Download } from 'lucide-react';
+import { formatBytes, formatPercentage, formatUptime } from '../utils/formatters';
+import type { VM } from '../types';
 
 const Dashboard = () => {
   const [filters, setFilters] = useState({
@@ -17,7 +19,7 @@ const Dashboard = () => {
 
   const { data: vmsData, isLoading: vmsLoading, error: vmsError, refetch } = useVMs(filters);
   const { data: nodesData, isLoading: nodesLoading } = useNodes();
-  const { data: tagsData, isLoading: tagsLoading } = useTags();
+  const { data: tagsData, isLoading: tagsLoading, refetch: refetchTags } = useTags();
 
   const vms = vmsData?.data || [];
   const nodes = nodesData?.data || [];
@@ -29,6 +31,43 @@ const Dashboard = () => {
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const handleRefreshTags = () => {
+    refetchTags();
+  };
+
+  const handleExportCSV = () => {
+    if (filteredVMs.length === 0) return;
+
+    const headers = ['VMID', 'Name', 'Status', 'Type', 'Node', 'CPU %', 'Memory', 'Max Memory', 'Disk', 'Max Disk', 'Uptime', 'Tags'];
+    const rows = filteredVMs.map((vm: VM) => [
+      vm.vmid,
+      vm.name,
+      vm.status,
+      vm.type,
+      vm.node,
+      formatPercentage(vm.cpu),
+      formatBytes(vm.mem),
+      formatBytes(vm.maxmem),
+      formatBytes(vm.disk),
+      formatBytes(vm.maxdisk),
+      vm.uptime ? formatUptime(vm.uptime) : 'Down',
+      vm.tags?.join('; ') || '',
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((val) => `"${val}"`).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `proxmox-vms-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   // Filter VMs by search term (client-side)
@@ -54,14 +93,32 @@ const Dashboard = () => {
                 Proxmox VM Dashboard
               </h1>
             </div>
-            <button
-              onClick={handleRefresh}
-              disabled={vmsLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-proxmox-orange text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-4 h-4 ${vmsLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportCSV}
+                disabled={filteredVMs.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-proxmox-blue text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={handleRefreshTags}
+                disabled={tagsLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-proxmox-orange text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${tagsLoading ? 'animate-spin' : ''}`} />
+                Refresh Tags
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={vmsLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-proxmox-orange text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${vmsLoading ? 'animate-spin' : ''}`} />
+                Refresh VM
+              </button>
+            </div>
           </div>
         </div>
       </header>

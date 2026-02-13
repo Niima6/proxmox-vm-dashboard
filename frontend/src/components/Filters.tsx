@@ -1,4 +1,5 @@
-import { Search, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Search, X, ChevronDown } from 'lucide-react';
 import type { Node } from '../types';
 
 interface FiltersProps {
@@ -13,6 +14,125 @@ interface FiltersProps {
   tags: string[];
   isLoading: boolean;
 }
+
+const TagsDropdown = ({
+  tags,
+  selectedTags,
+  onTagToggle,
+}: {
+  tags: string[];
+  selectedTags: string[];
+  onTagToggle: (tag: string) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as globalThis.Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredTags = tags.filter((tag) =>
+    tag.toLowerCase().includes(tagSearch.toLowerCase())
+  );
+
+  return (
+    <div className="mt-4" ref={dropdownRef}>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Tags
+      </label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-proxmox-orange focus:border-transparent dark:bg-gray-700 dark:text-white text-left"
+        >
+          <span className="truncate">
+            {selectedTags.length === 0
+              ? 'Select tags...'
+              : `${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''} selected`}
+          </span>
+          <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
+            {/* Search input */}
+            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  placeholder="Search tags..."
+                  className="w-full pl-10 pr-4 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-proxmox-orange focus:border-transparent dark:bg-gray-800 dark:text-white"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Tag list */}
+            <ul className="max-h-48 overflow-y-auto py-1">
+              {filteredTags.length === 0 ? (
+                <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  No tags found
+                </li>
+              ) : (
+                filteredTags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <li key={tag}>
+                      <button
+                        type="button"
+                        onClick={() => onTagToggle(tag)}
+                        className="w-full flex items-center gap-2 px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-left"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          readOnly
+                          className="rounded border-gray-300 text-proxmox-orange focus:ring-proxmox-orange"
+                        />
+                        <span className={isSelected ? 'text-proxmox-orange font-medium' : 'text-gray-700 dark:text-gray-300'}>
+                          {tag}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Selected tags display */}
+      {selectedTags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {selectedTags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-proxmox-orange text-white"
+            >
+              {tag}
+              <button type="button" onClick={() => onTagToggle(tag)} className="hover:text-orange-200">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Filters = ({ filters, onFilterChange, nodes, tags, isLoading }: FiltersProps) => {
   const handleNodeChange = (node: string) => {
@@ -112,29 +232,11 @@ const Filters = ({ filters, onFilterChange, nodes, tags, isLoading }: FiltersPro
 
       {/* Tags Filter */}
       {tags.length > 0 && (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tags
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => {
-              const isSelected = filters.tags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  onClick={() => handleTagToggle(tag)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition ${
-                    isSelected
-                      ? 'bg-proxmox-orange text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <TagsDropdown
+          tags={tags}
+          selectedTags={filters.tags}
+          onTagToggle={handleTagToggle}
+        />
       )}
     </div>
   );

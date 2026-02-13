@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      - PROXMOX_HOST=${PROXMOX_HOST}
+      - PROXMOX_PORT=${PROXMOX_PORT:-8006}
+      - PROXMOX_API_TOKEN_ID=${PROXMOX_API_TOKEN_ID}
+      - PROXMOX_API_TOKEN_SECRET=${PROXMOX_API_TOKEN_SECRET}
+      - CORS_ORIGIN=http://localhost:3000
+      - REJECT_UNAUTHORIZED=${REJECT_UNAUTHORIZED:-false}
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
